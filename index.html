@@ -15,7 +15,6 @@
       --text-muted: #94a3b8;
       --accent-blue: #38bdf8;
       --accent-hover: #0284c7;
-      --success-green: #22c55e;
       --error-red: #ef4444;
       --border-color: #334155;
     }
@@ -37,10 +36,6 @@
       justify-content: center;
     }
 
-    .hidden {
-      display: none !important;
-    }
-
     #setup, #app, #install {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -48,7 +43,7 @@
       padding: 32px;
       width: 90%;
       max-width: 520px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
       text-align: center;
       backdrop-filter: blur(8px);
       margin: 20px;
@@ -60,7 +55,6 @@
       line-height: 1.5;
       margin-top: 0;
       color: var(--text-main);
-      letter-spacing: -0.01em;
     }
 
     #setup h4 {
@@ -88,7 +82,6 @@
       background-color: var(--accent-hover);
       color: #ffffff;
       transform: translateY(-1px);
-      box-shadow: 0 6px 12px -2px rgba(56, 189, 248, 0.3);
     }
 
     button:active {
@@ -156,6 +149,13 @@
       background: #ffffff;
       z-index: 9999;
     }
+
+    .protocol-warning {
+      color: #f59e0b;
+      font-size: 0.85rem;
+      margin-top: 12px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -166,13 +166,13 @@
       <h4>Click below to install the offline runtime platform on your device.</h4>
       <button id="install-btn">Install Engine</button>
     </div>
-    <div id="setup-end" class="hidden">
+    <div id="setup-end" hidden>
       <h2>Installation Complete</h2>
       <h4>To complete setup, please restart the application to begin running files offline.</h4>
     </div>
   </div>
 
-  <div id="app" class="hidden">
+  <div id="app" hidden>
     <h3>Applications</h3>
     <button id="app-ni">Create New App Instance</button>
     <button id="app-tt">Create a New Test App</button>
@@ -181,23 +181,23 @@
     <button id="app-tt-web">Create a New Test Web</button>
   </div>
 
-  <div id="install" class="hidden">
-    <h5 id="in-01f-01" class="hidden">Installing engine</h5>
-    <h5 id="in-01-f-02" class="hidden">Installing engine.</h5>
-    <h5 id="in-01-f-03" class="hidden">Installing engine..</h5>
-    <h5 id="in-01-f-04" class="hidden">Installing engine...</h5>
-    <h5 id="in-02-f-01" class="hidden">Installation Failed: <span group="in-error">reason here</span></h5>
-    <h5 id="in-02-f-02" class="hidden">Installation Failed: <span group="in-error">reason here</span>.</h5>
-    <h5 id="in-02-f-03" class="hidden">Installation Failed: <span group="in-error">reason here</span>..</h5>
-    <h5 id="in-02-f-04" class="hidden">Installation Failed: <span group="in-error">reason here</span>...</h5>
+  <div id="install" hidden>
+    <h5 id="in-01f-01" hidden>Installing engine</h5>
+    <h5 id="in-01-f-02" hidden>Installing engine.</h5>
+    <h5 id="in-01-f-03" hidden>Installing engine..</h5>
+    <h5 id="in-01-f-04" hidden>Installing engine...</h5>
+    <h5 id="in-02-f-01" hidden>Installation Failed: <span group="in-error">reason here</span></h5>
+    <h5 id="in-02-f-02" hidden>Installation Failed: <span group="in-error">reason here</span>.</h5>
+    <h5 id="in-02-f-03" hidden>Installation Failed: <span group="in-error">reason here</span>..</h5>
+    <h5 id="in-02-f-04" hidden>Installation Failed: <span group="in-error">reason here</span>...</h5>
     <canvas id="in-load" width="150" height="150"></canvas>
   </div>
 
   <!-- Execution Frame for .docweb contents -->
-  <iframe id="docweb-render-frame" class="hidden"></iframe>
+  <iframe id="docweb-render-frame" hidden></iframe>
 
   <script>
-    const CACHE_NAME = 'docweb-offline-system-v3';
+    const CACHE_NAME = 'docweb-offline-system-v4';
     const INSTALL_MARKER_PATH = '/docweb-installed-marker.json';
 
     let deferredInstallPrompt = null;
@@ -205,12 +205,13 @@
     let animationTimer = null;
 
     async function registerOfflineServiceWorker() {
-      if ('serviceWorker' in navigator) {
+      // Clean HTTPS Service Worker registration for Chromebook PWA support
+      if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
         try {
-          // Register standard sw.js file (Blob URLs are blocked by Chromium security policy)
-          await navigator.serviceWorker.register('./sw.js');
+          await navigator.serviceWorker.register('./sw.js', { scope: './' });
+          console.log('Service Worker registered successfully over HTTPS.');
         } catch (err) {
-          console.warn('Service Worker file registration check:', err);
+          console.warn('Service Worker registration note:', err);
         }
       }
     }
@@ -237,15 +238,20 @@
     }
 
     function showInstallingProgress() {
-      document.getElementById('setup').classList.add('hidden');
-      document.getElementById('install').classList.remove('hidden');
+      document.getElementById('setup').hidden = true;
+      document.getElementById('install').hidden = false;
 
       const textIds = ['in-01f-01', 'in-01-f-02', 'in-01-f-03', 'in-01-f-04'];
       let step = 0;
 
       animationTimer = setInterval(() => {
-        textIds.forEach(id => document.getElementById(id).classList.add('hidden'));
-        document.getElementById(textIds[step % textIds.length]).classList.remove('hidden');
+        textIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.hidden = true;
+        });
+        const activeText = document.getElementById(textIds[step % textIds.length]);
+        if (activeText) activeText.hidden = false;
+        
         drawCanvasLoader(step);
         step++;
       }, 300);
@@ -259,10 +265,10 @@
           const el = document.getElementById(id);
           const errSpan = el.querySelector('[group="in-error"]');
           if (errSpan) errSpan.textContent = failedReason;
-          if (idx === 0) el.classList.remove('hidden');
+          if (idx === 0) el.hidden = false;
         });
       } else {
-        document.getElementById('install').classList.add('hidden');
+        document.getElementById('install').hidden = true;
       }
     }
 
@@ -331,7 +337,7 @@
       const markerData = {
         installed: true,
         installedAt: new Date().toISOString(),
-        engine: ".docweb Execution Platform"
+        engine: ".docweb Execution Platform (HTTPS)"
       };
       
       const cache = await caches.open(CACHE_NAME);
@@ -341,17 +347,20 @@
       });
       await cache.put(INSTALL_MARKER_PATH, response);
 
-      // Save document HTML shell directly into CacheStorage without query strings for offline ChromeOS access
+      // Save document HTML shell directly into CacheStorage for offline ChromeOS access on HTTPS
       try {
         const htmlContent = document.documentElement.outerHTML;
         const cleanPath = location.pathname;
         const baseUrl = location.href.split('?')[0];
 
-        const docResponse = () => new Response(htmlContent, { headers: { 'Content-Type': 'text/html' } });
+        const createDocResponse = () => new Response(htmlContent, { 
+          headers: { 'Content-Type': 'text/html; charset=utf-8' } 
+        });
 
-        await cache.put(cleanPath, docResponse());
-        await cache.put(baseUrl, docResponse());
-        await cache.put('./', docResponse());
+        await cache.put(cleanPath, createDocResponse());
+        await cache.put(baseUrl, createDocResponse());
+        await cache.put('./', createDocResponse());
+        await cache.put('/', createDocResponse());
       } catch (err) {
         console.warn('Cache write notice:', err);
       }
@@ -359,12 +368,12 @@
 
     function executeDocwebHtml(htmlContent, fileName = 'Opened File') {
       document.title = `${fileName}`;
-      document.getElementById('setup').classList.add('hidden');
-      document.getElementById('app').classList.add('hidden');
-      document.getElementById('install').classList.add('hidden');
+      document.getElementById('setup').hidden = true;
+      document.getElementById('app').hidden = true;
+      document.getElementById('install').hidden = true;
 
       const iframe = document.getElementById('docweb-render-frame');
-      iframe.classList.remove('hidden');
+      iframe.hidden = false;
       iframe.srcdoc = htmlContent;
     }
 
@@ -399,12 +408,12 @@
       const appEl = document.getElementById('app');
 
       if (!isInstalled) {
-        setupEl.classList.remove('hidden');
-        document.getElementById('setup-start').classList.remove('hidden');
-        document.getElementById('setup-end').classList.add('hidden');
-        appEl.classList.add('hidden');
+        setupEl.hidden = false;
+        document.getElementById('setup-start').hidden = false;
+        document.getElementById('setup-end').hidden = true;
+        appEl.hidden = true;
       } else {
-        setupEl.classList.add('hidden');
+        setupEl.hidden = true;
 
         const payloadKey = `docweb_payload_${currentSessionId}`;
         const nameKey = `docweb_name_${currentSessionId}`;
@@ -414,7 +423,7 @@
           const fileName = sessionStorage.getItem(nameKey) || 'Document';
           executeDocwebHtml(existingPayload, fileName);
         } else {
-          appEl.classList.remove('hidden');
+          appEl.hidden = false;
         }
       }
     }
@@ -435,9 +444,9 @@
             if (outcome === 'accepted') {
               await writeInstallationCacheMarker();
               stopInstallingProgress();
-              document.getElementById('setup-start').classList.add('hidden');
-              document.getElementById('setup-end').classList.remove('hidden');
-              document.getElementById('setup').classList.remove('hidden');
+              document.getElementById('setup-start').hidden = true;
+              document.getElementById('setup-end').hidden = false;
+              document.getElementById('setup').hidden = false;
             } else {
               stopInstallingProgress('User cancelled installation prompt');
             }
@@ -445,9 +454,9 @@
           } else {
             await writeInstallationCacheMarker();
             stopInstallingProgress();
-            document.getElementById('setup-start').classList.add('hidden');
-            document.getElementById('setup-end').classList.remove('hidden');
-            document.getElementById('setup').classList.remove('hidden');
+            document.getElementById('setup-start').hidden = true;
+            document.getElementById('setup-end').hidden = false;
+            document.getElementById('setup').hidden = false;
           }
         } catch (err) {
           stopInstallingProgress(err.message || 'Unknown error');
