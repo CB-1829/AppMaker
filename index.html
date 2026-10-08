@@ -8,28 +8,143 @@
   <link rel="manifest" id="manifest-placeholder" />
 
   <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-hover: #0284c7;
+      --success-green: #22c55e;
+      --error-red: #ef4444;
+      --border-color: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      padding: 20px;
-      font-family: system-ui, -apple-system, sans-serif;
-      background-color: #ffffff;
-      color: #000000;
+      padding: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     .hidden {
       display: none !important;
     }
 
+    #setup, #app, #install {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px;
+      width: 90%;
+      max-width: 520px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      backdrop-filter: blur(8px);
+      margin: 20px;
+    }
+
+    #setup h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.5;
+      margin-top: 0;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    #setup h4 {
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
     button {
-      padding: 8px 16px;
-      margin: 5px 0;
+      background-color: var(--accent-blue);
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 24px;
+      margin: 8px 4px;
       cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 4px 6px -1px rgba(56, 189, 248, 0.2);
+    }
+
+    button:hover {
+      background-color: var(--accent-hover);
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 12px -2px rgba(56, 189, 248, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    #app h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-blue);
+      margin: 20px 0 10px 0;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+    }
+
+    #app h3:first-child {
+      margin-top: 0;
+    }
+
+    #app button {
+      width: 100%;
+      text-align: left;
+      background: #0f172a;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+    }
+
+    #app button:hover {
+      background: #1e293b;
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    #install h5 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 12px 0;
+      color: var(--text-main);
+    }
+
+    [group="in-error"] {
+      color: var(--error-red);
+      font-weight: bold;
     }
 
     canvas#in-load {
       display: block;
-      margin-top: 15px;
-      border: 1px solid #ccc;
+      margin: 20px auto 0 auto;
+      border-radius: 50%;
+      background: transparent;
     }
 
     iframe#docweb-render-frame {
@@ -39,11 +154,7 @@
       position: fixed;
       inset: 0;
       background: #ffffff;
-    }
-
-    [group="in-error"] {
-      color: red;
-      font-weight: bold;
+      z-index: 9999;
     }
   </style>
 </head>
@@ -51,33 +162,34 @@
 
   <div id="setup">
     <div id="setup-start">
-      <h2>HELLO, TO GET DOCWEB ENGINE, PLEASE PRESS THE INSTALL BUTTON BELLOW...</h2>
-      <button id="install-btn">install</button>
+      <h2>Welcome to .docweb Engine</h2>
+      <h4>Click below to install the offline runtime platform on your device.</h4>
+      <button id="install-btn">Install Engine</button>
     </div>
     <div id="setup-end" class="hidden">
-      <h2>THANK YOU FOR INSTALLING DOCWEB ENGINE</h2>
-      <h4>To finish the startup, close and reopen the app, and start running</h4>
+      <h2>Installation Complete</h2>
+      <h4>To complete setup, please restart the application to begin running files offline.</h4>
     </div>
   </div>
 
   <div id="app" class="hidden">
-    <h3>APPS</h3>
+    <h3>Applications</h3>
     <button id="app-ni">Create New App Instance</button>
     <button id="app-tt">Create a New Test App</button>
-    <h3>WEBS</h3>
+    <h3>Web Instances</h3>
     <button id="app-ni-web">Create New Web Instance</button>
     <button id="app-tt-web">Create a New Test Web</button>
   </div>
 
   <div id="install" class="hidden">
-    <h5 id="in-01f-01" class="hidden">INSTALLING</h5>
-    <h5 id="in-01-f-02" class="hidden">INSTALLING.</h5>
-    <h5 id="in-01-f-03" class="hidden">INSTALLING..</h5>
-    <h5 id="in-01-f-04" class="hidden">INSTALLING...</h5>
-    <h5 id="in-02-f-01" class="hidden">INSTALLING FAILED: <span group="in-error">reason here</span></h5>
-    <h5 id="in-02-f-02" class="hidden">INSTALLING FAILED: <span group="in-error">reason here</span>.</h5>
-    <h5 id="in-02-f-03" class="hidden">INSTALLING FAILED: <span group="in-error">reason here</span>..</h5>
-    <h5 id="in-02-f-04" class="hidden">INSTALLING FAILED: <span group="in-error">reason here</span>...</h5>
+    <h5 id="in-01f-01" class="hidden">Installing engine</h5>
+    <h5 id="in-01-f-02" class="hidden">Installing engine.</h5>
+    <h5 id="in-01-f-03" class="hidden">Installing engine..</h5>
+    <h5 id="in-01-f-04" class="hidden">Installing engine...</h5>
+    <h5 id="in-02-f-01" class="hidden">Installation Failed: <span group="in-error">reason here</span></h5>
+    <h5 id="in-02-f-02" class="hidden">Installation Failed: <span group="in-error">reason here</span>.</h5>
+    <h5 id="in-02-f-03" class="hidden">Installation Failed: <span group="in-error">reason here</span>..</h5>
+    <h5 id="in-02-f-04" class="hidden">Installation Failed: <span group="in-error">reason here</span>...</h5>
     <canvas id="in-load" width="150" height="150"></canvas>
   </div>
 
@@ -85,48 +197,53 @@
   <iframe id="docweb-render-frame" class="hidden"></iframe>
 
   <script>
-    const CACHE_NAME = 'docweb-offline-system-v2';
+    const CACHE_NAME = 'docweb-offline-system-v3';
     const INSTALL_MARKER_PATH = '/docweb-installed-marker.json';
 
     let deferredInstallPrompt = null;
     let currentSessionId = '';
     let animationTimer = null;
 
-    // Registers a service worker with explicit offline fallback caching for Chromebooks
     async function registerOfflineServiceWorker() {
       if ('serviceWorker' in navigator) {
+        // Embed inline Service Worker string for full offline Chromebook support
         const swCode = `
           const CACHE_NAME = '${CACHE_NAME}';
-          const CURRENT_URL = self.location.href;
 
-          self.addEventListener('install', (e) => {
+          self.addEventListener('install', (event) => {
             self.skipWaiting();
-            e.waitUntil(
+            event.waitUntil(
               caches.open(CACHE_NAME).then((cache) => {
                 return cache.addAll([
                   './',
-                  location.pathname,
-                  location.href
+                  self.location.pathname,
+                  self.location.href
                 ]).catch(() => {});
               })
             );
           });
 
-          self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+          self.addEventListener('activate', (event) => {
+            event.waitUntil(self.clients.claim());
+          });
 
-          self.addEventListener('fetch', (e) => {
-            e.respondWith(
-              caches.match(e.request).then((cached) => {
-                if (cached) return cached;
-                return fetch(e.request).then((response) => {
-                  if (response && response.status === 200) {
-                    const resClone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(e.request, resClone));
+          self.addEventListener('fetch', (event) => {
+            event.respondWith(
+              caches.match(event.request).then((cachedResponse) => {
+                if (cachedResponse) {
+                  return cachedResponse;
+                }
+                return fetch(event.request).then((networkResponse) => {
+                  if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
+                    const responseClone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
                   }
-                  return response;
+                  return networkResponse;
                 }).catch(() => {
-                  // Offline fallback on Chromebook when network fails
-                  return caches.match(e.request) || caches.match(location.pathname) || caches.match('./');
+                  // Fallback to root or current path cache when offline on Chromebook
+                  return caches.match(self.location.pathname) || 
+                         caches.match('./') || 
+                         caches.match(self.location.href);
                 });
               })
             );
@@ -138,7 +255,7 @@
           const swUrl = URL.createObjectURL(blob);
           await navigator.serviceWorker.register(swUrl);
         } catch (err) {
-          console.warn('Service Worker Offline fallback notice:', err);
+          console.warn('Service Worker Registration Notice:', err);
         }
       }
     }
@@ -151,15 +268,16 @@
 
       ctx.beginPath();
       ctx.arc(75, 75, 50, 0, Math.PI * 2);
-      ctx.strokeStyle = '#e0e0e0';
-      ctx.lineWidth = 10;
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 8;
       ctx.stroke();
 
-      const startAngle = (frame * 0.1) % (Math.PI * 2);
+      const startAngle = (frame * 0.12) % (Math.PI * 2);
       ctx.beginPath();
-      ctx.arc(75, 75, 50, startAngle, startAngle + Math.PI * 0.5);
-      ctx.strokeStyle = '#0066cc';
-      ctx.lineWidth = 10;
+      ctx.arc(75, 75, 50, startAngle, startAngle + Math.PI * 0.6);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
       ctx.stroke();
     }
 
@@ -199,10 +317,11 @@
         "short_name": "DocWeb",
         "start_url": window.location.pathname,
         "display": "standalone",
-        "background_color": "#ffffff",
+        "background_color": "#0f172a",
+        "theme_color": "#0f172a",
         "icons": [
           {
-            "src": "https://placehold.co/192x192/000000/ffffff?text=.docweb",
+            "src": "https://placehold.co/192x192/0f172a/38bdf8?text=.docweb",
             "sizes": "192x192",
             "type": "image/png"
           }
@@ -286,10 +405,19 @@
     function createSampleDocwebFile(type = 'App') {
       const sampleHtml = `<!DOCTYPE html>
 <html>
-<head><title>New ${type} Instance</title></head>
-<body style="font-family:sans-serif; padding:20px;">
-  <h2>.docweb ${type} Running Offline</h2>
-  <p>This .docweb payload is running inside your offline engine session: <code>${currentSessionId}</code></p>
+<head>
+  <title>New ${type} Instance</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 40px; background: #0f172a; color: #f8fafc; }
+    .card { background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; }
+    code { color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>.docweb ${type} Running Offline</h2>
+    <p>This .docweb payload is running inside your offline engine session: <code>${currentSessionId}</code></p>
+  </div>
 </body>
 </html>`;
 
@@ -312,7 +440,6 @@
       } else {
         setupEl.classList.add('hidden');
 
-        // Check if session storage contains payload for this ID
         const payloadKey = `docweb_payload_${currentSessionId}`;
         const nameKey = `docweb_name_${currentSessionId}`;
         const existingPayload = sessionStorage.getItem(payloadKey);
@@ -332,7 +459,7 @@
         deferredInstallPrompt = e;
       });
 
-      // User installation snippet
+      // User installation action handler
       document.getElementById('install-btn').addEventListener('click', async () => {
         showInstallingProgress();
         try {
@@ -361,7 +488,7 @@
         }
       });
 
-      // App Creation Listeners
+      // App & Web Instance Creation Listeners
       document.getElementById('app-ni').addEventListener('click', () => createSampleDocwebFile('App'));
       document.getElementById('app-tt').addEventListener('click', () => createSampleDocwebFile('Test App'));
 
@@ -371,7 +498,7 @@
       const webTt = document.getElementById('app-tt-web') || document.querySelectorAll('#app button')[3];
       if (webTt) webTt.addEventListener('click', () => createSampleDocwebFile('Test Web'));
 
-      // File Drag & Drop
+      // Drag and Drop File Execution
       window.addEventListener('dragover', (e) => e.preventDefault());
       window.addEventListener('drop', (e) => {
         e.preventDefault();
@@ -383,7 +510,7 @@
         }
       });
 
-      // OS File Association Consumer
+      // Launch Queue Consumer for OS file opening
       if ('launchQueue' in window) {
         window.launchQueue.setConsumer(async (launchParams) => {
           if (!launchParams.files.length) return;
