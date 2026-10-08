@@ -9,19 +9,20 @@
   <link rel="manifest" id="manifest-placeholder" />
 
   <style>
-    /* Plain unstyled runtime: zero background colors or styled cards */
+    /* Pure invisible runtime: absolute zero UI or margins */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
+      overflow: hidden;
+      background: #ffffff;
       font-family: system-ui, -apple-system, sans-serif;
-      background: transparent;
     }
 
-    #installation-gatekeeper, #installed-confirmation {
+    #installation-gatekeeper {
       padding: 20px;
-      max-w: 600px;
+      max-width: 600px;
     }
 
     .hidden {
@@ -29,54 +30,34 @@
     }
 
     iframe {
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       border: none;
       position: fixed;
       inset: 0;
-      background: #fff;
+      background: #ffffff;
     }
   </style>
 </head>
 <body>
 
   <!-- ===================================================================== -->
-  <!-- VIEW 1: UNSTYLED INSTALLATION GUIDE (Visible only if Uninstalled)      -->
+  <!-- VIEW 1: INSTALLATION GUIDE (Visible ONLY when Uninstalled)            -->
   <!-- ===================================================================== -->
   <div id="installation-gatekeeper" class="hidden">
     <h2>.docweb Engine - Installation Required</h2>
-    <p>To execute <code>.docweb</code> files offline, this web app must first be installed to your system.</p>
+    <p>To execute <code>.docweb</code> files, this web app must first be installed.</p>
     
     <p><strong id="route-id-tag">Session ID: Pending</strong></p>
-    <p><small id="full-url-preview"></small></p>
 
     <div style="margin-top: 15px;">
       <button id="install-btn" style="padding: 8px 16px;">Install .docweb Engine</button>
-      <button id="simulate-install-btn" style="padding: 8px 16px;">[Dev] Confirm Installation & Write Cache Marker</button>
-    </div>
-
-    <hr style="margin-top: 20px;" />
-    <p><small>Manual Install: Select "Add to Home Screen" or click the install icon in your browser's address bar.</small></p>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- VIEW 2: INSTALLED CONFIRMATION & FILE RUNNER (Unstyled)               -->
-  <!-- ===================================================================== -->
-  <div id="installed-confirmation" class="hidden">
-    <h3>Status: .docweb Engine Installed</h3>
-    <p>Cache verified: <code>docweb-installed-marker.json</code></p>
-    <p><small id="active-id-display"></small></p>
-    
-    <p>Select a <code>.docweb</code> HTML file to execute:</p>
-    <input type="file" id="file-input" accept=".docweb,.html,.htm" />
-    
-    <div style="margin-top: 20px;">
-      <button id="clear-cache-btn"><small>Clear Cache Marker (Reset)</small></button>
+      <button id="simulate-install-btn" style="padding: 8px 16px;">[Dev] Confirm Installation</button>
     </div>
   </div>
 
   <!-- ===================================================================== -->
-  <!-- VIEW 3: NATIVE EXECUTION CANVAS (Renders raw .docweb HTML)            -->
+  <!-- VIEW 2: EXECUTION CANVAS (Renders raw .docweb HTML)                    -->
   <!-- ===================================================================== -->
   <iframe id="docweb-render-frame" class="hidden"></iframe>
 
@@ -128,9 +109,8 @@
       }
 
       currentSessionId = id;
-      document.getElementById('route-id-tag').textContent = `Session ID: ${currentSessionId}`;
-      document.getElementById('active-id-display').textContent = `Session ID: ${currentSessionId}`;
-      document.getElementById('full-url-preview').textContent = window.location.href;
+      const tag = document.getElementById('route-id-tag');
+      if (tag) tag.textContent = `Session ID: ${currentSessionId}`;
     }
 
     async function verifyInstallationCache() {
@@ -193,32 +173,39 @@
     }
 
     function executeDocwebHtml(htmlContent, fileName = 'Opened File') {
-      document.title = `${fileName} - .docweb`;
+      document.title = `${fileName}`;
       
       const iframe = document.getElementById('docweb-render-frame');
       
-      // Hide all installer prompts
+      // Hide installation guide if present
       document.getElementById('installation-gatekeeper').classList.add('hidden');
-      document.getElementById('installed-confirmation').classList.add('hidden');
 
-      // Show rendering frame & inject HTML without surrounding UI
+      // Render full screen
       iframe.classList.remove('hidden');
       iframe.srcdoc = htmlContent;
     }
 
-    function openFileInNewTabWithId(file) {
+    function openFilePayload(file) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target.result;
+        const payloadKey = `docweb_payload_${currentSessionId}`;
         
-        // Generate new session ID for new tab
-        const newId = 'doc_' + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).substring(4);
-        const newUrl = window.location.pathname + '?id=' + newId;
+        if (!sessionStorage.getItem(payloadKey)) {
+          // Render directly in current tab
+          sessionStorage.setItem(payloadKey, content);
+          sessionStorage.setItem(`docweb_name_${currentSessionId}`, file.name);
+          executeDocwebHtml(content, file.name);
+        } else {
+          // Open new tab with new session ID for subsequent file
+          const newId = 'doc_' + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).substring(4);
+          const newUrl = window.location.pathname + '?id=' + newId;
 
-        sessionStorage.setItem(`docweb_payload_${newId}`, content);
-        sessionStorage.setItem(`docweb_name_${newId}`, file.name);
+          sessionStorage.setItem(`docweb_payload_${newId}`, content);
+          sessionStorage.setItem(`docweb_name_${newId}`, file.name);
 
-        window.open(newUrl, '_blank');
+          window.open(newUrl, '_blank');
+        }
       };
       reader.readAsText(file);
     }
@@ -229,14 +216,15 @@
       const isInstalled = isCacheInstalled || isStandalone;
 
       const gatekeeperEl = document.getElementById('installation-gatekeeper');
-      const confirmationEl = document.getElementById('installed-confirmation');
 
       if (!isInstalled) {
-        // LOCKED STATE: Require installation guide
+        // UNINSTALLED: Show installation gatekeeper
         gatekeeperEl.classList.remove('hidden');
-        confirmationEl.classList.add('hidden');
       } else {
-        // UNLOCKED STATE: Check if session storage contains payload for this ID
+        // INSTALLED: Hide installation guide completely. Zero UI displayed.
+        gatekeeperEl.classList.add('hidden');
+
+        // Check if session storage contains payload for this ID
         const payloadKey = `docweb_payload_${currentSessionId}`;
         const nameKey = `docweb_name_${currentSessionId}`;
         const existingPayload = sessionStorage.getItem(payloadKey);
@@ -244,10 +232,6 @@
         if (existingPayload) {
           const fileName = sessionStorage.getItem(nameKey) || 'Document';
           executeDocwebHtml(existingPayload, fileName);
-        } else {
-          // Show plain unstyled file opener with confirmed status
-          gatekeeperEl.classList.add('hidden');
-          confirmationEl.classList.remove('hidden');
         }
       }
     }
@@ -278,31 +262,12 @@
         await checkAndRenderAppState();
       });
 
-      document.getElementById('clear-cache-btn').addEventListener('click', () => {
-        clearCacheMarker();
-      });
-
-      document.getElementById('file-input').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentId = urlParams.get('id');
-
-        const currentPayloadKey = `docweb_payload_${currentId}`;
-        if (!sessionStorage.getItem(currentPayloadKey)) {
-          // Render directly in current tab
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const content = event.target.result;
-            sessionStorage.setItem(currentPayloadKey, content);
-            sessionStorage.setItem(`docweb_name_${currentId}`, file.name);
-            executeDocwebHtml(content, file.name);
-          };
-          reader.readAsText(file);
-        } else {
-          // Open in a new tab with a new generated ID
-          openFileInNewTabWithId(file);
+      // Allow dragging and dropping .docweb / .html files anywhere on the blank window
+      window.addEventListener('dragover', (e) => e.preventDefault());
+      window.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          openFilePayload(e.dataTransfer.files[0]);
         }
       });
 
@@ -312,13 +277,7 @@
           if (!launchParams.files.length) return;
           for (const handle of launchParams.files) {
             const file = await handle.getFile();
-            const content = await file.text();
-            
-            const payloadKey = `docweb_payload_${currentSessionId}`;
-            sessionStorage.setItem(payloadKey, content);
-            sessionStorage.setItem(`docweb_name_${currentSessionId}`, file.name);
-            
-            executeDocwebHtml(content, file.name);
+            openFilePayload(file);
           }
         });
       }
