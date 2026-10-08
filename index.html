@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>.docweb Runtime Engine</title>
+  <title>DOCWEB ENGINE</title>
 
-  <link rel="manifest" id="manifest-placeholder" />
+  <!-- External web manifest reference -->
+  <link rel="manifest" id="manifest-placeholder" href="manifest.webmanifest" />
 
   <style>
     :root {
@@ -34,8 +35,6 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 300px;
-      height: 300px;
     }
 
     #setup, #app, #install {
@@ -151,20 +150,13 @@
       background: #ffffff;
       z-index: 9999;
     }
-
-    .protocol-warning {
-      color: #f59e0b;
-      font-size: 0.85rem;
-      margin-top: 12px;
-      line-height: 1.4;
-    }
   </style>
 </head>
 <body>
 
   <div id="setup">
     <div id="setup-start">
-      <h2>Welcome to .docweb Engine</h2>
+      <h2>Welcome to DOCWEB ENGINE</h2>
       <h4>Click below to install the offline runtime platform on your device.</h4>
       <button id="install-btn">Install Engine</button>
     </div>
@@ -199,92 +191,17 @@
   <iframe id="docweb-render-frame" hidden></iframe>
 
   <script>
-    const CACHE_NAME = 'docweb-offline-system-v4';
-    const INSTALL_MARKER_PATH = '/docweb-installed-marker.json';
-
-    let deferredInstallPrompt = null;
-    let currentSessionId = '';
-    let animationTimer = null;
-
-    async function registerOfflineServiceWorker() {
-      // Clean HTTPS Service Worker registration for Chromebook PWA support
-      if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
-        try {
-          await navigator.serviceWorker.register('./sw.js', { scope: './' });
-          console.log('Service Worker registered successfully over HTTPS.');
-        } catch (err) {
-          console.warn('Service Worker registration note:', err);
-        }
-      }
-    }
-
-    function drawCanvasLoader(frame) {
-      const canvas = document.getElementById('in-load');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      ctx.beginPath();
-      ctx.arc(75, 75, 50, 0, Math.PI * 2);
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 8;
-      ctx.stroke();
-
-      const startAngle = (frame * 0.12) % (Math.PI * 2);
-      ctx.beginPath();
-      ctx.arc(75, 75, 50, startAngle, startAngle + Math.PI * 0.6);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 8;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-    }
-
-    function showInstallingProgress() {
-      document.getElementById('setup').hidden = true;
-      document.getElementById('install').hidden = false;
-
-      const textIds = ['in-01f-01', 'in-01-f-02', 'in-01-f-03', 'in-01-f-04'];
-      let step = 0;
-
-      animationTimer = setInterval(() => {
-        textIds.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.hidden = true;
-        });
-        const activeText = document.getElementById(textIds[step % textIds.length]);
-        if (activeText) activeText.hidden = false;
-        
-        drawCanvasLoader(step);
-        step++;
-      }, 300);
-    }
-
-    function stopInstallingProgress(failedReason = null) {
-      if (animationTimer) clearInterval(animationTimer);
-      if (failedReason) {
-        const errorIds = ['in-02-f-01', 'in-02-f-02', 'in-02-f-03', 'in-02-f-04'];
-        errorIds.forEach((id, idx) => {
-          const el = document.getElementById(id);
-          const errSpan = el.querySelector('[group="in-error"]');
-          if (errSpan) errSpan.textContent = failedReason;
-          if (idx === 0) el.hidden = false;
-        });
-      } else {
-        document.getElementById('install').hidden = true;
-      }
-    }
-
     function setupDynamicManifest() {
       const manifestData = {
-        "name": ".docweb Executable Engine",
-        "short_name": "DocWeb",
+        "name": "DOCWEB ENGINE",
+        "short_name": "DOCWEB",
         "start_url": window.location.pathname,
         "display": "standalone",
         "background_color": "#0f172a",
         "theme_color": "#0f172a",
         "icons": [
           {
-            "src": "https://placehold.co/192x192/0f172a/38bdf8?text=.docweb",
+            "src": "https://placehold.co/192x192/0f172a/38bdf8?text=DOCWEB",
             "sizes": "192x192",
             "type": "image/png"
           }
@@ -300,9 +217,12 @@
         ]
       };
 
-      const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
-      const manifestUrl = URL.createObjectURL(manifestBlob);
-      document.getElementById('manifest-placeholder').setAttribute('href', manifestUrl);
+      // Ensure fallback data URI manifest if manifest.webmanifest is offline/unreachable
+      const manifestTag = document.getElementById('manifest-placeholder');
+      if (manifestTag && !manifestTag.getAttribute('href')) {
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+        manifestTag.setAttribute('href', URL.createObjectURL(manifestBlob));
+      }
     }
 
     function ensureSessionIdInUrl() {
@@ -339,17 +259,15 @@
       const markerData = {
         installed: true,
         installedAt: new Date().toISOString(),
-        engine: ".docweb Execution Platform (HTTPS)"
+        engine: "DOCWEB ENGINE (HTTPS)"
       };
       
       const cache = await caches.open(CACHE_NAME);
-
       const response = new Response(JSON.stringify(markerData, null, 2), {
         headers: { 'Content-Type': 'application/json' }
       });
       await cache.put(INSTALL_MARKER_PATH, response);
 
-      // Save document HTML shell directly into CacheStorage for offline ChromeOS access on HTTPS
       try {
         const htmlContent = document.documentElement.outerHTML;
         const cleanPath = location.pathname;
@@ -436,7 +354,6 @@
         deferredInstallPrompt = e;
       });
 
-      // User installation action handler
       document.getElementById('install-btn').addEventListener('click', async () => {
         showInstallingProgress();
         try {
@@ -465,17 +382,15 @@
         }
       });
 
-      // App & Web Instance Creation Listeners
       document.getElementById('app-ni').addEventListener('click', () => createSampleDocwebFile('App'));
       document.getElementById('app-tt').addEventListener('click', () => createSampleDocwebFile('Test App'));
 
-      const webNi = document.getElementById('app-ni-web') || document.querySelectorAll('#app button')[2];
+      const webNi = document.getElementById('app-ni-web');
       if (webNi) webNi.addEventListener('click', () => createSampleDocwebFile('Web Instance'));
 
-      const webTt = document.getElementById('app-tt-web') || document.querySelectorAll('#app button')[3];
+      const webTt = document.getElementById('app-tt-web');
       if (webTt) webTt.addEventListener('click', () => createSampleDocwebFile('Test Web'));
 
-      // Drag and Drop File Execution
       window.addEventListener('dragover', (e) => e.preventDefault());
       window.addEventListener('drop', (e) => {
         e.preventDefault();
@@ -487,7 +402,6 @@
         }
       });
 
-      // Launch Queue Consumer for OS file opening
       if ('launchQueue' in window) {
         window.launchQueue.setConsumer(async (launchParams) => {
           if (!launchParams.files.length) return;
@@ -501,7 +415,6 @@
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
-      setupDynamicManifest();
       ensureSessionIdInUrl();
       await registerOfflineServiceWorker();
       initializeEventListeners();
