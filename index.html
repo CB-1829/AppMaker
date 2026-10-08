@@ -206,56 +206,11 @@
 
     async function registerOfflineServiceWorker() {
       if ('serviceWorker' in navigator) {
-        // Embed inline Service Worker string for full offline Chromebook support
-        const swCode = `
-          const CACHE_NAME = '${CACHE_NAME}';
-
-          self.addEventListener('install', (event) => {
-            self.skipWaiting();
-            event.waitUntil(
-              caches.open(CACHE_NAME).then((cache) => {
-                return cache.addAll([
-                  './',
-                  self.location.pathname,
-                  self.location.href
-                ]).catch(() => {});
-              })
-            );
-          });
-
-          self.addEventListener('activate', (event) => {
-            event.waitUntil(self.clients.claim());
-          });
-
-          self.addEventListener('fetch', (event) => {
-            event.respondWith(
-              caches.match(event.request).then((cachedResponse) => {
-                if (cachedResponse) {
-                  return cachedResponse;
-                }
-                return fetch(event.request).then((networkResponse) => {
-                  if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
-                    const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-                  }
-                  return networkResponse;
-                }).catch(() => {
-                  // Fallback to root or current path cache when offline on Chromebook
-                  return caches.match(self.location.pathname) || 
-                         caches.match('./') || 
-                         caches.match(self.location.href);
-                });
-              })
-            );
-          });
-        `;
-
         try {
-          const blob = new Blob([swCode], { type: 'application/javascript' });
-          const swUrl = URL.createObjectURL(blob);
-          await navigator.serviceWorker.register(swUrl);
+          // Register standard sw.js file (Blob URLs are blocked by Chromium security policy)
+          await navigator.serviceWorker.register('./sw.js');
         } catch (err) {
-          console.warn('Service Worker Registration Notice:', err);
+          console.warn('Service Worker file registration check:', err);
         }
       }
     }
@@ -378,17 +333,28 @@
         installedAt: new Date().toISOString(),
         engine: ".docweb Execution Platform"
       };
+      
+      const cache = await caches.open(CACHE_NAME);
+
       const response = new Response(JSON.stringify(markerData, null, 2), {
         headers: { 'Content-Type': 'application/json' }
       });
-      const cache = await caches.open(CACHE_NAME);
       await cache.put(INSTALL_MARKER_PATH, response);
 
-      // Save document HTML shell itself into cache for Chromebook offline access
-      const htmlContent = document.documentElement.outerHTML;
-      const docResponse = new Response(htmlContent, { headers: { 'Content-Type': 'text/html' } });
-      await cache.put(location.pathname, docResponse);
-      await cache.put(location.href, docResponse);
+      // Save document HTML shell directly into CacheStorage without query strings for offline ChromeOS access
+      try {
+        const htmlContent = document.documentElement.outerHTML;
+        const cleanPath = location.pathname;
+        const baseUrl = location.href.split('?')[0];
+
+        const docResponse = () => new Response(htmlContent, { headers: { 'Content-Type': 'text/html' } });
+
+        await cache.put(cleanPath, docResponse());
+        await cache.put(baseUrl, docResponse());
+        await cache.put('./', docResponse());
+      } catch (err) {
+        console.warn('Cache write notice:', err);
+      }
     }
 
     function executeDocwebHtml(htmlContent, fileName = 'Opened File') {
